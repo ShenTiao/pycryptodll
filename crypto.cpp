@@ -171,7 +171,7 @@ std::string decrypt3des(const std::string& key, std::string& inData,const std::s
         e.SetKeyWithIV((byte*)key.c_str(), key.size(),(byte*)iv.c_str());
         StringSource ss(inData, true, new 
             StreamTransformationFilter(e, 
-                new HexEncoder(new StringSink(outData)));
+                new HexEncoder(new StringSink(outData))));
     }
     catch (const Exception& e) {
         return e.what();
