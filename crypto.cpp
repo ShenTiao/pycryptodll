@@ -15,6 +15,17 @@
 namespace py = pybind11;
 using namespace CryptoPP;
 
+/*
+*   随机生成密钥key
+*   CBC模式vi
+*/
+
+
+
+/*
+*   MD5
+*/
+
 //MD5校验
 std::string retMD5(std::string& data) {
     std::string digest;
@@ -22,6 +33,12 @@ std::string retMD5(std::string& data) {
     StringSource(data, true, new HashFilter(md5, new HexEncoder(new StringSink(digest))));
     return digest;
 }
+
+/*
+*AES - CBC模式加密实现
+* key首先经过MD5转换。
+*/
+
 
 //AES加密 CBC
 enum AESKeyLength
@@ -36,14 +53,13 @@ const std::string encryAeskey(std::string& strKey) {
 }
 
 //inData明文  strKey密钥
-std::string encrypt4aes(const std::string& inData,std::string& strKey)
+std::string encrypt4aes(const std::string& inData,std::string& strKey,const std::string& iv)
 {
     std::string outData = "";
     std::string errMsg = "";
     
     //密钥经过MD5运算
     const std::string Key = encryAeskey(strKey);
-
 
     if (inData.empty() || Key.empty()) // 判断待加密的字符串或者密钥是否为空
     {
@@ -60,12 +76,10 @@ std::string encrypt4aes(const std::string& inData,std::string& strKey)
         return errMsg;
     }
 
-    byte iv[AES::BLOCKSIZE];
-
     try
     {
         CBC_Mode<AES>::Encryption e;  //CBC 模式加密
-        e.SetKeyWithIV((byte*)Key.c_str(), iKeyLen, iv);
+        e.SetKeyWithIV((byte*)Key.c_str(), iKeyLen, (byte*)iv.c_str());
         //加密的关键， outData 就是加密后的数据
         StringSource ss(inData, true, new StreamTransformationFilter(e, 
             new HexEncoder(new StringSink(outData))));    
@@ -79,10 +93,14 @@ std::string encrypt4aes(const std::string& inData,std::string& strKey)
 }
 
 //AES解密 indata密文 strKey解密密钥
-std::string decrypt4aes(const std::string& inData, std::string& strKey)
+std::string decrypt4aes(std::string& inData, std::string& strKey,const std::string& iv)
 {
     std::string outData = "";
     std::string errMsg = "";
+
+    StringSource(inData, true, new HexDecoder(
+        new StringSink(inData)
+    ));
 
     //密钥经过MD5运算
     const std::string Key = encryAeskey(strKey);
@@ -102,57 +120,46 @@ std::string decrypt4aes(const std::string& inData, std::string& strKey)
         return errMsg;
     }
 
-    byte iv[AES::BLOCKSIZE];
-
     try
     {
         //CBC 模式解密
         CBC_Mode<AES>::Decryption d;    
-        d.SetKeyWithIV((byte*)Key.c_str(), iKeyLen, iv);
+        d.SetKeyWithIV((byte*)Key.c_str(), iKeyLen, (byte*)iv.c_str());
         //解密的函数，outData 是解密的结果
         StringSource ss(inData, true,
-            new StreamTransformationFilter(d, new HexEncoder(new StringSink(outData))));  
+            new StreamTransformationFilter(d, new HexEncoder(
+                new StringSink(outData))));  
     }
     catch (const CryptoPP::Exception& e)
     {
         errMsg = "Encryptor throw exception";
         return errMsg;
     }
-
     return outData;
 }
 
+/*
+* 3DES-CBC模式加密实现
+*
+*/
 
 //3DES加密
-std::string	encrypt3des(std::string& inData) {
+std::string	encrypt3des(std::string& inData, std::string& strKey, const std::string& iv) {
     std::string outData;
     std::string printKey;
-    //随机key
-    AutoSeededRandomPool prng;
-    SecByteBlock key(0x00, DES_EDE2::DEFAULT_KEYLENGTH);
-    prng.GenerateBlock(key, key.size());
-
-    //生成iv
-    byte iv[DES_EDE2::BLOCKSIZE];
-    prng.GenerateBlock(iv, sizeof(iv));
-    
-    StringSource pkey(key, true,
-        new HexEncoder(
-            new StringSink(printKey)));
-
-
+   
     try {
         ECB_Mode<DES_EDE3>::Encryption e;
-        e.SetKeyWithIV(key, key.size(), iv);
+        e.SetKeyWithIV((byte*)strKey.c_str(), strKey.size(), (byte*)iv.c_str());
 
         //ECB和CBC模式必须填充加密块
         StringSource ss(inData, true, new 
-            StreamTransformationFilter(e,new StringSink(outData)));
+            StreamTransformationFilter(e,
+                new HexEncoder(new StringSink(outData))));
     }
     catch (const Exception& e) {
         return e.what();
     }
-
     return outData;
 }
 
@@ -163,7 +170,8 @@ std::string decrypt3des(const std::string& key, std::string& inData,const std::s
         CBC_Mode<DES_EDE3>::Decryption e;
         e.SetKeyWithIV((byte*)key.c_str(), key.size(),(byte*)iv.c_str());
         StringSource ss(inData, true, new 
-            StreamTransformationFilter(e, new StringSink(outData)));
+            StreamTransformationFilter(e, 
+                new HexEncoder(new StringSink(outData)));
     }
     catch (const Exception& e) {
         return e.what();
@@ -173,9 +181,10 @@ std::string decrypt3des(const std::string& key, std::string& inData,const std::s
 
 PYBIND11_MODULE(pycryptodll, m) {
     m.doc() = "crypto++";
+
 	m.def("retMD5", &retMD5, "return the MD5 value");
     
     m.def("enAESkey", &encryAeskey, "encry the AES key");
-    m.def("enAES", &encrypt4aes, "encrypt the AES", py::arg("indata"), py::arg("key"));
-    m.def("deAES", &decrypt4aes, "decode the AES", py::arg("indata"), py::arg("key"));
+    m.def("enAES", &encrypt4aes, "encrypt the AES", py::arg("indata"), py::arg("key"),py::arg("iv"));
+    m.def("deAES", &decrypt4aes, "decode the AES", py::arg("indata"), py::arg("key"),py::arg("iv"));
 }
