@@ -116,12 +116,6 @@ print(m.retMD5("123131"))
 
 ## 加密算法部分
 
-### 密钥随机生成与CBC模式下vi自动生成
-
-
-
-
-
 ### AES(CBC mode)
 
 AES 采用的是对称加密，在密码学中又称 Rijndael 加密法，是美国联邦政府采用的一种区块加密标准。这个标准用来替代原先的 DES ，已经被多方分析且广为全世界所使用。 本次使用CBC模式，密码分组链接模式（CBC模式）：这种模式是先将明文切分成若干小段，然后每一小段与初始块或者上一段的密文段进行异或运算后，再与密钥进行加密。
@@ -134,66 +128,11 @@ CBC模式:
 
 ![image-20211207171108714](https://s2.loli.net/2021/12/07/12ETvCjLok9aRbn.png)
 
-AES密钥长度要求：
-
-```cpp
-enum AESKeyLength
-{
-    AES_KEY_LENGTH_16 = 16, AES_KEY_LENGTH_24 = 24, AES_KEY_LENGTH_32 = 32 
-};
-```
-
-判断密钥长度是否满足：
-
-```cpp
-if (inData.empty() || Key.empty()) // 判断待加密的字符串或者密钥是否为空
-    {
-        errMsg = "indata or key is empty!!";
-        return errMsg;
-    }
-unsigned int iKeyLen = Key.length();
-
-    if (iKeyLen != AES_KEY_LENGTH_16 && iKeyLen != AES_KEY_LENGTH_24  //判断密钥的长度是否符合要求
-        && iKeyLen != AES_KEY_LENGTH_32)
-    {
-        errMsg = "aes key invalid!!";
-        return errMsg;
-    }
-```
-
-MD5生成密钥必定满足32字节：
-
-```cpp
-//加密密钥key:MD5生成32字节密钥
-const std::string encryAeskey(std::string& strKey) {
-    const std::string Key = retMD5(strKey);
-    return Key;
-}
-```
-
-生成密文：
-
-```cpp
-try
-    {
-        CBC_Mode<AES>::Encryption e;  //CBC 模式加密
-        e.SetKeyWithIV((byte*)Key.c_str(), iKeyLen, iv);
-        //加密的关键， outData 就是加密后的数据
-        StringSource ss(inData, true, new StreamTransformationFilter(e, new StringSink(outData)));    
-    }
-    catch (const CryptoPP::Exception& e)
-    {
-        errMsg = "Encryptor throw exception!!";
-        return errMsg;
-    }
-```
-
 接口函数：
 
 ```cpp
 //将输入Key经过MD5加密生成的32字节密钥，返回密钥值，
 const std::string encryAeskey(std::string& strKey) 
- 
 //AES加密函数，inData为明文，strKey为MD5加密前输入的key CBC下iv，返回加密字符串
 std::string encrypt4aes(const std::string& inData,std::string& strKey,std::string& iv)
 //AES解密函数 inData密文 strKey解密密钥 CBC下iv，返回解密字符串
@@ -239,3 +178,32 @@ TripleDES,是对纯文本数据的DES算法的多重应用，以增加原有DES�
 BC模式:
 
 ![image-20211207171108714](https://s2.loli.net/2021/12/07/12ETvCjLok9aRbn.png)
+
+函数接口：
+
+```cpp
+/*
+* 3DES-CBC模式加密实现
+*  随机生成Key      std::string randomDesKey()
+*  随机生成iv       std::string randomIv()
+*  加密   std::string encrypt3des(std::string& inData, std::string& strKey, std::string& eniv)
+*  解密   std::string decrypt3des(std::string& inData,std::string& strKey,std::string& eniv)
+*/
+```
+
+[CBC-Mode]: https://www.cryptopp.com/wiki/CBC_Mode
+
+
+
+### RC4
+
+RC4作为流密码，该密码使用 40 位到 2048 位的密钥，并且没有初始化向量(iv)。
+
+注意密钥长度：
+
+> ```
+> key length(default): 16
+> key length (min): 1
+> key length (max): 256
+> iv size: 0
+> ```
