@@ -147,7 +147,7 @@ DES 使用一个 56 位的密钥以及附加的 8 位奇偶校验位，产生最
 
 TripleDES,是对纯文本数据的DES算法的多重应用，以增加原有DES算法的安全性。顾名思义，DES算法被应用了3次。TripleDES有两种变体:第一种是两个key;第二个是三个key。2-key TDEA提供大约80位的安全性，而3-key TDEA提供大约112位的安全性。相反，AES提供的最低安全级别为128。
 
-本次实现2 Key Triple DES:
+本次根绝官方文档实现3 Key Triple DES:
 
 单次DES加密流程图：![image-20211208164432707](https://s2.loli.net/2021/12/08/VfpBGEvOU4dyZtr.png)
 

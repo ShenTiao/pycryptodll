@@ -1,18 +1,21 @@
+#include <string>
+#include <sstream>
 #include <pybind11/pybind11.h>
 #include <base64.h>
-#include <aes.h>
-#include <md5.h>
 #include <hex.h>
 #include <files.h>
 #include <osrng.h>
 #include <filters.h>
 #include <default.h>
+
+#include <aes.h>
 #include <des.h>
-#include <string>
-#include <sstream>
-#include <arc4.h>
+
 #define _CRYPTO_UTIL_H_
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
+
+#include <arc4.h>
+#include <md5.h>
 
 namespace py = pybind11;
 using namespace CryptoPP;
@@ -107,11 +110,62 @@ std::string decode(std::string inData, int addKey, int mulKey) {
 *  
 */
 
-class myRC4P {
-    private:
-        std::string plain, cipher, recover;
-        int keyLength;
-};
+//RC4密钥指定长度随机生成
+std::string randomARC4key(int len) {
+    if (len < 0 || len>256) return "the length of the key is invaild:1-256";
+    AutoSeededRandomPool prng;
+    SecByteBlock key(len);
+    prng.GenerateBlock(key, key.size());
+    std::string encoded;
+    encoded.clear();
+    StringSource(key, key.size(), true,
+        new HexEncoder(
+            new StringSink(encoded)
+        ) // HexEncoder
+    ); // StringSource
+    return encoded;
+}
+
+//RC4加密函数
+std::string encryRc4(std::string& inData, std::string& strKey,int len) {
+    SecByteBlock key(len);
+    StringSource ss1(strKey, true,              
+        new HexDecoder(
+            new ArraySink(key.data(), len))); 
+    Weak1::ARC4::Encryption enc;
+    enc.SetKey(key, key.size());
+    std::string outData;
+    StringSource ss2(inData, true, new
+        StreamTransformationFilter(enc, new
+            StringSink(outData)));
+
+    std::string encoded;
+    encoded.clear();
+    StringSource(outData, true,
+        new HexEncoder(
+            new StringSink(encoded)));
+    return encoded;
+}
+
+std::string decryRc4(std::string& inData, std::string& strKey,int len) { 
+    SecByteBlock key(len);
+    StringSource ss1(strKey, true,
+        new HexDecoder(
+            new ArraySink(key.data(), len)));
+    Weak1::ARC4::Encryption dec;
+    dec.SetKey(key, key.size());
+    std::string outData;
+    StringSource ss2(inData, true, new
+        StreamTransformationFilter(dec, new
+            StringSink(outData)));
+
+    std::string encoded;
+    encoded.clear();
+    StringSource(outData, true,
+        new HexEncoder(
+            new StringSink(encoded)));
+    return encoded;
+}
 
 /*
 *   MD5
