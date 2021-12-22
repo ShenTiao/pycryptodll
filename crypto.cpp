@@ -61,7 +61,7 @@ int findReverse(int a, int n) {
 }
 
 bool checkAffineKey(int addKey, int mulKey) {
-    int c, t, mod = 26;
+    int c=1, t, mod = 26;
     if (addKey == 1 || addKey % 2 == 0) return false;
     if (mod < addKey) {
         t = mod;
@@ -118,7 +118,7 @@ std::string randomARC4key(int len) {
     prng.GenerateBlock(key, key.size());
     std::string encoded;
     encoded.clear();
-    StringSource(key, key.size(), true,
+    StringSource ss(key, key.size(), true,
         new HexEncoder(
             new StringSink(encoded)
         ) // HexEncoder
@@ -141,7 +141,7 @@ std::string encryRc4(std::string& inData, std::string& strKey,int len) {
 
     std::string encoded;
     encoded.clear();
-    StringSource(outData, true,
+    StringSource ss3(outData, true,
         new HexEncoder(
             new StringSink(encoded)));
     return encoded;
@@ -161,24 +161,36 @@ std::string decryRc4(std::string& inData, std::string& strKey,int len) {
 
     std::string encoded;
     encoded.clear();
-    StringSource(outData, true,
+    StringSource ss3(outData, true,
         new HexEncoder(
             new StringSink(encoded)));
     return encoded;
 }
 
 /*
-*   MD5
+*  MD5
+* 
 */
 
-//MD5校验
-std::string encryMD5(std::string& data) {
+//生成MD5摘要
+std::string enmsgMD5(std::string& msg) {
     std::string digest;
-    Weak1::MD5 md5;
-    StringSource(data, true, new HashFilter(md5, new HexEncoder(new StringSink(digest))));
+    Weak1::MD5 hash;
+    StringSource ss(msg, true, new HashFilter(hash, new HexEncoder(new StringSink(digest))));
     return digest;
 }
 
+//验证MD5
+bool checkmsgMD5(std::string& digest,std::string& msg) {
+    bool result;
+    Weak1::MD5 hash;
+    StringSource ss(digest + msg, true, new HashVerificationFilter(hash,
+        new ArraySink((byte*)&result, sizeof(result))));
+    if (result == true) {
+        return true;
+    }
+    else return false;
+}
 
 /*
 * 3DES-CBC模式加密实现
@@ -195,7 +207,7 @@ std::string randomDesKey() {
     SecByteBlock key(DES_EDE3::DEFAULT_KEYLENGTH);
     prng.GenerateBlock(key, key.size());
     encoded.clear();
-    StringSource(key, key.size(), true,
+    StringSource ss(key, key.size(), true,
         new HexEncoder(
             new StringSink(encoded)
         ) // HexEncoder
@@ -210,7 +222,7 @@ std::string randomIv() {
     byte iv[DES_EDE3::BLOCKSIZE];
     prng.GenerateBlock(iv, sizeof(iv));
     encoded.clear();
-    StringSource(iv, sizeof(iv), true,
+    StringSource ss(iv, sizeof(iv), true,
         new HexEncoder(
             new StringSink(encoded)
         ) // HexEncoder
@@ -240,7 +252,7 @@ std::string	encrypt3des(std::string& inData, std::string& strKey, std::string& e
     }
     std::string encoded;
     encoded.clear();
-    StringSource(outData, true,
+    StringSource ss(outData, true,
         new HexEncoder(
             new StringSink(encoded)));
     return encoded;
@@ -277,7 +289,7 @@ std::string decrypt3des(std::string& inData, std::string& strKey, std::string& e
 PYBIND11_MODULE(pycryptodll, m) {
     m.doc() = "crypto++";
 
-	m.def("retMD5", &encryMD5, "return the MD5 value");
+	m.def("retMD5", &enmsgMD5, "return the MD5 value");
     
     m.def("randomDesKey", &randomDesKey);
     m.def("randomIv", &randomIv);
