@@ -5,11 +5,14 @@
 #include <hex.h>
 #include <files.h>
 #include <osrng.h>
-#include <filters.h>
 #include <default.h>
 
 #include <aes.h>
 #include <des.h>
+#include <rsa.h>
+#include <pssr.h>
+#include <sha.h>
+#include <filters.h>
 
 #define _CRYPTO_UTIL_H_
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
@@ -283,8 +286,83 @@ std::string decrypt3des(std::string& inData, std::string& strKey, std::string& e
     return outData;
 }
 
+/*
+*  RSA-PSS签名方案
+*  RSA加密
+*
+*/
+//密钥保存函数
+void Save(const std::string& filename, const BufferedTransformation& bt) {
+    FileSink file(filename.c_str());
+    bt.CopyTo(file);
+    file.MessageEnd();
+}
 
+//密钥加载函数
+void Load(const std::string& filename, BufferedTransformation& bt) {
+    FileSource file(filename.c_str(), true);
+    file.TransferTo(bt);
+    bt.MessageEnd();
+}
 
+//随机生成公钥与私钥并保存
+void getRsaKey(std::string pubfilename,std::string prifilename) {
+    InvertibleRSAFunction params;
+    AutoSeededRandomPool rng;
+    params.GenerateRandomWithKeySize(rng, 3072);
+    RSA::PrivateKey privateKey(params);
+    RSA::PublicKey publicKey(params);
+
+    ByteQueue pubkeyQueue;
+    publicKey.Save(pubkeyQueue);
+    Save(pubfilename, pubkeyQueue);
+
+    ByteQueue prikeyQueue;
+    privateKey.Save(prikeyQueue);
+    Save(prifilename, prikeyQueue);
+}
+
+//RSA-PSS
+std::string getRsaSignature(const std::string& prifilename,const std::string& msg) {
+    RSA::PrivateKey prikey;
+    std::string signature;
+    ByteQueue priqu;
+    Load(prifilename, priqu);
+    prikey.Load(priqu);
+
+    AutoSeededRandomPool rng;
+    RSASS<PSSR, SHA256>::Signer signer(prikey);
+    try {
+        StringSource ss1(msg, true, new SignerFilter(
+            rng, signer, new StringSink(signature), true
+        ));
+    }
+    catch(CryptoPP::Exception& e) {
+        return e.what();
+    }
+    return signature;
+}
+
+std::string checkRsaSigature(const std::string& pubfilename, const std::string& signature,const std::string& msg) {
+    RSA::PublicKey pubkey;
+    std::string recover;
+    ByteQueue pubqu;
+    Load(pubfilename, pubqu);
+    pubkey.Load(pubqu);
+    RSASS<PSSR, SHA256>::Verifier verifier(pubkey);
+    try {
+        StringSource ss1(signature, true, new SignatureVerificationFilter(
+            verifier, new StringSink(recover),
+            SignatureVerificationFilter::THROW_EXCEPTION |
+            SignatureVerificationFilter::PUT_MESSAGE
+        ));
+        assert(msg == recovered);
+        return recover;
+    }
+    catch (CryptoPP::Exception& e) {
+        return e.what();
+    }
+}
 
 PYBIND11_MODULE(pycryptodll, m) {
     m.doc() = "crypto++";
