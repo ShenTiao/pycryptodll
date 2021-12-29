@@ -1,5 +1,7 @@
 #include <string>
 #include <sstream>
+#include <cassert>
+
 #include <pybind11/pybind11.h>
 #include <base64.h>
 #include <hex.h>
@@ -93,7 +95,7 @@ std::string enAffine(std::string inData,int addKey,int mulKey) {
 }
 
 //仿射解密
-std::string decode(std::string inData, int addKey, int mulKey) {
+std::string deAffine(std::string inData, int addKey, int mulKey) {
     std::string outData;
     for (int i = 0; i < inData.size(); ++i) {
         int code = inData[i] - 'A';
@@ -130,12 +132,12 @@ std::string randomARC4key(int len) {
 }
 
 //RC4加密函数
-std::string encryRc4(std::string& inData, std::string& strKey,int len) {
+std::string encryRC4(std::string& inData, std::string& strKey, int len) {
     SecByteBlock key(len);
-    StringSource ss1(strKey, true,              
+    StringSource ss1(strKey, true,
         new HexDecoder(
-            new ArraySink(key.data(), len))); 
-    Weak1::ARC4::Encryption enc;
+            new ArraySink(key.data(), len)));
+    Weak::ARC4::Encryption enc;
     enc.SetKey(key, key.size());
     std::string outData;
     StringSource ss2(inData, true, new
@@ -150,24 +152,22 @@ std::string encryRc4(std::string& inData, std::string& strKey,int len) {
     return encoded;
 }
 
-std::string decryRc4(std::string& inData, std::string& strKey,int len) { 
+std::string decryRC4(std::string& inData, std::string& strKey, int len) {
     SecByteBlock key(len);
+    std::string decode;
     StringSource ss1(strKey, true,
         new HexDecoder(
             new ArraySink(key.data(), len)));
-    Weak1::ARC4::Encryption dec;
+    StringSource ss2(inData, true,
+        new HexDecoder(
+            new StringSink(decode)));
+    Weak::ARC4::Encryption dec;
     dec.SetKey(key, key.size());
     std::string outData;
-    StringSource ss2(inData, true, new
+    StringSource ss3(decode, true, new
         StreamTransformationFilter(dec, new
             StringSink(outData)));
-
-    std::string encoded;
-    encoded.clear();
-    StringSource ss3(outData, true,
-        new HexEncoder(
-            new StringSink(encoded)));
-    return encoded;
+    return outData;
 }
 
 /*
@@ -177,17 +177,20 @@ std::string decryRc4(std::string& inData, std::string& strKey,int len) {
 
 //生成MD5摘要
 std::string enmsgMD5(std::string& msg) {
-    std::string digest;
-    Weak1::MD5 hash;
-    StringSource ss(msg, true, new HashFilter(hash, new HexEncoder(new StringSink(digest))));
-    return digest;
+    std::string digest, encoded;
+    Weak::MD5 hash;
+    StringSource ss(msg, true, new HashFilter(hash, new StringSink(digest)));
+    StringSource ss1(digest, true, new HexEncoder(new StringSink(encoded)));
+    return encoded;
 }
 
 //验证MD5
-bool checkmsgMD5(std::string& digest,std::string& msg) {
+bool checkmsgMD5(std::string& digest, std::string& msg) {
     bool result;
-    Weak1::MD5 hash;
-    StringSource ss(digest + msg, true, new HashVerificationFilter(hash,
+    Weak::MD5 hash;
+    std::string decoded;
+    StringSource ss1(digest, true, new HexDecoder(new StringSink(decoded)));
+    StringSource ss(decoded + msg, true, new HashVerificationFilter(hash,
         new ArraySink((byte*)&result, sizeof(result))));
     if (result == true) {
         return true;
@@ -356,7 +359,7 @@ std::string checkRsaSigature(const std::string& pubfilename, const std::string& 
             SignatureVerificationFilter::THROW_EXCEPTION |
             SignatureVerificationFilter::PUT_MESSAGE
         ));
-        assert(msg == recovered);
+        assert(msg == recover);
         return recover;
     }
     catch (CryptoPP::Exception& e) {
@@ -367,8 +370,9 @@ std::string checkRsaSigature(const std::string& pubfilename, const std::string& 
 PYBIND11_MODULE(pycryptodll, m) {
     m.doc() = "crypto++";
 
-	m.def("retMD5", &enmsgMD5, "return the MD5 value");
-    
+	m.def("enmsgMD5", &enmsgMD5, "return the MD5 value");
+    m.def("checkMD5", &checkmsgMD5, "check the MD5 value");
+
     m.def("randomDesKey", &randomDesKey);
     m.def("randomIv", &randomIv);
     m.def("enDES", &encrypt3des, "encry the DES");
