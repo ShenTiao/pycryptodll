@@ -367,6 +367,57 @@ std::string checkRsaSigature(const std::string& pubfilename, const std::string& 
     }
 }
 
+/*
+*   RSA-OAEP-SHAº”√‹
+*
+*
+*
+*
+*/
+
+void getRSAOAEPkey(std::string pubfilename, std::string prifilename) {
+    InvertibleRSAFunction parameters;
+    AutoSeededRandomPool rng;
+    parameters.GenerateRandomWithKeySize(rng, 1024);
+    RSA::PublicKey publicKey(parameters);
+    RSA::PrivateKey privateKey(parameters);
+    ByteQueue pubkeyQueue;
+    publicKey.Save(pubkeyQueue);
+    Save(pubfilename, pubkeyQueue);
+
+    ByteQueue prikeyQueue;
+    privateKey.Save(prikeyQueue);
+    Save(prifilename, prikeyQueue);
+}
+
+std::string encryRSAOAEP(std::string pubfilename, std::string plain) {
+    AutoSeededRandomPool rng;
+    std::string cipher;
+    RSA::PublicKey pubkey;
+    ByteQueue pubqu;
+    Load(pubfilename, pubqu);
+    pubkey.Load(pubqu);
+    RSAES_OAEP_SHA_Encryptor e(pubkey);
+    StringSource(plain, true,
+        new PK_EncryptorFilter(rng, e,
+            new StringSink(cipher)));
+    return cipher;
+}
+
+std::string decryRSAOAEP(std::string prifilename, std::string cipher) {
+    AutoSeededRandomPool rng;
+    std::string recover;
+    RSA::PrivateKey prikey;
+    ByteQueue priqu;
+    Load(prifilename, priqu);
+    prikey.Load(priqu);
+    RSAES_OAEP_SHA_Decryptor e(prikey);
+    StringSource(cipher, true,
+        new PK_DecryptorFilter(rng, e,
+            new StringSink(recover)));
+    return recover;
+}
+
 PYBIND11_MODULE(pycryptodll, m) {
     m.doc() = "crypto++";
 
