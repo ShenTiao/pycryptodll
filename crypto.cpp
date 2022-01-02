@@ -421,27 +421,27 @@ std::string decryRSAOAEP(std::string prifilename, std::string cipher) {
 PYBIND11_MODULE(pycryptodll, m) {
     m.doc() = "crypto++ to python";
     //Afine
-    m.def("encryAffine", &enAffine);
-    m.def("decryAffine", &deAffine);
+    m.def("enAffine", &enAffine);
+    m.def("deAffine", &deAffine);
     //ARC4
-    m.def("random rc4 key", &randomARC4key);
-    m.def("rc4 encry", &encryRC4);
-    m.def("rc4 decry", &decryRC4);
+    m.def("randomARC4key", &randomARC4key);
+    m.def("encryRC4", &encryRC4);
+    m.def("decryRC4", &decryRC4);
     //MD5
-    m.def("get md5", &enmsgMD5);
-    m.def("check md5", &checkmsgMD5);
+    m.def("enmsgMD5", &enmsgMD5);
+    m.def("checkmsgMD5", &checkmsgMD5);
     //DES
-    m.def("get random des key", &randomDesKey);
-    m.def("get random iv key", &randomIv);
-    m.def("des encry", &encrypt3des);
-    m.def("des decry", &decrypt3des);
+    m.def("randomDesKey", &randomDesKey);
+    m.def("randomIv", &randomIv);
+    m.def("encrypt3des", &encrypt3des);
+    m.def("decrypt3des", &decrypt3des);
     //rsa signature
-    m.def("rsa signature key", &getRsaKey);
-    m.def("rsa get signature", &getRsaSignature);
-    m.def("check rsa signature", &checkRsaSigature);
+    m.def("getRsaKey", &getRsaKey);
+    m.def("getRsaSignature", &getRsaSignature);
+    m.def("checkRsaSigature", &checkRsaSigature);
     //rsa encry
-    m.def("rsa encry gey key", &getRSAOAEPkey);
-    m.def("rsa encry", &encryRSAOAEP);
-    m.def("rsa decry", &decryRSAOAEP);
+    m.def("getRSAOAEPkey", &getRSAOAEPkey);
+    m.def("encryRSAOAEP", &encryRSAOAEP);
+    m.def("decryRSAOAEP", &decryRSAOAEP);
          
 }
