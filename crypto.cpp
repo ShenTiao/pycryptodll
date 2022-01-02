@@ -419,13 +419,29 @@ std::string decryRSAOAEP(std::string prifilename, std::string cipher) {
 }
 
 PYBIND11_MODULE(pycryptodll, m) {
-    m.doc() = "crypto++";
-
-	m.def("enmsgMD5", &enmsgMD5, "return the MD5 value");
-    m.def("checkMD5", &checkmsgMD5, "check the MD5 value");
-
-    m.def("randomDesKey", &randomDesKey);
-    m.def("randomIv", &randomIv);
-    m.def("enDES", &encrypt3des, "encry the DES");
-    m.def("deDES", &encrypt3des, "decode the des");
+    m.doc() = "crypto++ to python";
+    //Afine
+    m.def("encryAffine", &enAffine);
+    m.def("decryAffine", &deAffine);
+    //ARC4
+    m.def("random rc4 key", &randomARC4key);
+    m.def("rc4 encry", &encryRC4);
+    m.def("rc4 decry", &decryRC4);
+    //MD5
+    m.def("get md5", &enmsgMD5);
+    m.def("check md5", &checkmsgMD5);
+    //DES
+    m.def("get random des key", &randomDesKey);
+    m.def("get random iv key", &randomIv);
+    m.def("des encry", &encrypt3des);
+    m.def("des decry", &decrypt3des);
+    //rsa signature
+    m.def("rsa signature key", &getRsaKey);
+    m.def("rsa get signature", &getRsaSignature);
+    m.def("check rsa signature", &checkRsaSigature);
+    //rsa encry
+    m.def("rsa encry gey key", &getRSAOAEPkey);
+    m.def("rsa encry", &encryRSAOAEP);
+    m.def("rsa decry", &decryRSAOAEP);
+         
 }
